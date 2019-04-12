@@ -172,7 +172,7 @@ static std::tuple<std::string, std::string> get_kernel_dirs(const struct utsname
   return std::make_tuple(ksrc, kobj);
 }
 
-void ClangParser::parse(ast::Program *program, StructMap &structs)
+void ClangParser::parse(ast::Program *program, BPFtrace &bpftrace)
 {
   auto input = program->c_definitions;
   if (input.size() == 0)
@@ -259,7 +259,13 @@ void ClangParser::parse(ast::Program *program, StructMap &structs)
       cursor,
       [](CXCursor c, CXCursor parent, CXClientData client_data)
       {
-        auto &structs = *static_cast<StructMap*>(client_data);
+
+        if (clang_getCursorKind(parent) == CXCursor_EnumDecl)
+        {
+          auto &enums = static_cast<BPFtrace*>(client_data)->enums_;
+          enums[get_clang_string(clang_getCursorSpelling(c))] = clang_getEnumConstantDeclValue(c);
+          return CXChildVisit_Recurse;
+        }
 
         if (clang_getCursorKind(parent) != CXCursor_StructDecl &&
             clang_getCursorKind(parent) != CXCursor_UnionDecl)
@@ -267,6 +273,7 @@ void ClangParser::parse(ast::Program *program, StructMap &structs)
 
         if (clang_getCursorKind(c) == CXCursor_FieldDecl)
         {
+          auto &structs = static_cast<BPFtrace*>(client_data)->structs_;
           auto struct_name = get_parent_struct_name(c);
           auto ident = get_clang_string(clang_getCursorSpelling(c));
           auto offset = clang_Cursor_getOffsetOfField(c) / 8;
@@ -286,11 +293,12 @@ void ClangParser::parse(ast::Program *program, StructMap &structs)
           structs[struct_name].fields[ident].offset = offset;
           structs[struct_name].fields[ident].type = get_sized_type(type);
           structs[struct_name].size = ptypesize;
+          std::cout << struct_name << "." << ident << "<" << get_sized_type(type).size << ">" << std::endl;
         }
 
         return CXChildVisit_Recurse;
       },
-      &structs);
+      &bpftrace);
 
   clang_disposeTranslationUnit(translation_unit);
   clang_disposeIndex(index);

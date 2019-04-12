@@ -45,6 +45,19 @@ void CodegenLLVM::visit(String &string)
   expr_ = buf;
 }
 
+void CodegenLLVM::visit(Identifier &identifier)
+{
+  if (bpftrace_.enums_.count(identifier.ident) != 0)
+  {
+    expr_ = b_.getInt64(bpftrace_.enums_[identifier.ident]);
+  }
+  else
+  {
+    std::cerr << "unknown identifier \"" << identifier.ident << "\"" << std::endl;
+    abort();
+  }
+}
+
 void CodegenLLVM::visit(Builtin &builtin)
 {
   if (builtin.ident == "nsecs")

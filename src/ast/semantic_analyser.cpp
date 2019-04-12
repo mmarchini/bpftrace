@@ -59,6 +59,18 @@ void SemanticAnalyser::visit(StackMode &mode)
   }
 }
 
+void SemanticAnalyser::visit(Identifier &identifier)
+{
+  if (bpftrace_.enums_.count(identifier.ident) != 0) {
+    identifier.is_constant = true;
+    identifier.type = SizedType(Type::integer, 8);
+  }
+  else {
+    identifier.type = SizedType(Type::none, 0);
+    err_ << "Unknown identifier: '" << identifier.ident << "'" << std::endl;
+  }
+}
+
 void SemanticAnalyser::visit(Builtin &builtin)
 {
   if (builtin.ident == "nsecs" ||
