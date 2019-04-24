@@ -656,6 +656,12 @@ void SemanticAnalyser::visit(Unop &unop)
       unop.type = SizedType(Type::integer, type.size);
     }
   }
+  else if (unop.op == Parser::token::BAND) {
+    // TODO(mmarchini) get address size instead of fixed 8
+    // TODO(mmarchini) validate if `expr` points to valid memory (can't be scalar)
+    unop.type = SizedType(Type::integer, 8);
+  }
+
   else {
     unop.type = SizedType(Type::integer, 8);
   }

@@ -28,6 +28,7 @@ public:
   bool is_literal = false;
   bool is_variable = false;
   bool is_map = false;
+  bool reference_ = false;
 };
 using ExpressionList = std::vector<Expression *>;
 

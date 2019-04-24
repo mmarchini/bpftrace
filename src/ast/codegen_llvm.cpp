@@ -846,8 +846,20 @@ void CodegenLLVM::visit(Binop &binop)
 
 void CodegenLLVM::visit(Unop &unop)
 {
+  if (unop.op == bpftrace::Parser::token::BAND)
+    unop.expr->reference_ = true;
+
   unop.expr->accept(*this);
 
+  if (unop.op == bpftrace::Parser::token::BAND) {
+    // if (unop.expr->reference_ == nullptr) abort();
+    // Value *refer = b_.CreateAllocaBPF(unop.type, "reference");
+    // b_.CreateStore(b_.CreateIntCast(expr_, b_.getInt64Ty(), false), refer, true [> mark store as volatile, so LLVM can't optimize it out <]);
+    // expr_ = b_.CreateLoad(refer);
+    // b_.CreateLifetimeEnd(refer);
+    expr_ = b_.CreateIntCast(expr_, b_.getInt64Ty(), false);
+    return;
+  }
   SizedType &type = unop.expr->type;
   if (type.type == Type::integer)
   {
@@ -1027,8 +1039,12 @@ void CodegenLLVM::visit(ArrayAccess &arr)
   index = b_.CreateIntCast(expr_, b_.getInt64Ty(), false); // promote int to 64-bit
   offset = b_.CreateMul(index, b_.getInt64(type.pointee_size));
 
-  AllocaInst *dst = b_.CreateAllocaBPF(SizedType(Type::integer, type.pointee_size), "array_access");
   Value *src = b_.CreateAdd(array, offset);
+  if (arr.reference_) {
+    expr_ = src;
+    return;
+  }
+  AllocaInst *dst = b_.CreateAllocaBPF(SizedType(Type::integer, type.pointee_size), "array_access");
   b_.CreateProbeRead(dst, type.pointee_size, src);
   expr_ = b_.CreateLoad(dst);
   b_.CreateLifetimeEnd(dst);

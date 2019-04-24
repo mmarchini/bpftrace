@@ -120,7 +120,7 @@ void yyerror(bpftrace::Driver &driver, const char *s);
 %left LEFT RIGHT
 %left PLUS MINUS
 %left MUL DIV MOD
-%right LNOT BNOT DEREF CAST
+%right LNOT BNOT REF DEREF CAST
 %left DOT PTR
 
 %start program
@@ -233,6 +233,7 @@ expr : INT             { $$ = new ast::Integer($1); }
      | BNOT expr       { $$ = new ast::Unop(token::BNOT, $2); }
      | MINUS expr       { $$ = new ast::Unop(token::MINUS, $2); }
      | MUL  expr %prec DEREF { $$ = new ast::Unop(token::MUL,  $2); }
+     | BAND expr %prec   REF { $$ = new ast::Unop(token::BAND,  $2); }
      | expr DOT ident  { $$ = new ast::FieldAccess($1, $3); }
      | expr PTR ident  { $$ = new ast::FieldAccess(new ast::Unop(token::MUL, $1), $3); }
      | expr "[" expr "]" { $$ = new ast::ArrayAccess($1, $3); }
