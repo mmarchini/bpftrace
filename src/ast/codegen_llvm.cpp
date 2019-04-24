@@ -479,12 +479,23 @@ void CodegenLLVM::visit(Call &call)
     // To support ipv6, [2] should be the remaining bytes of the address
     AllocaInst *buf = b_.CreateAllocaBPF(call.type, "inet");
     b_.CreateMemSet(buf, b_.getInt8(0), call.type.size, 1);
+
     Value *af_offset = b_.CreateGEP(buf, b_.getInt64(0));
-    Value *inet_offset = b_.CreateGEP(buf, {b_.getInt64(0), b_.getInt64(8)});
     call.vargs->at(0)->accept(*this);
     b_.CreateStore(expr_, af_offset);
-    call.vargs->at(1)->accept(*this);
+
+    Value *inet_offset = b_.CreateGEP(buf, {b_.getInt64(0), b_.getInt64(8)});
+
+    auto &inet = call.vargs->at(1);
+    inet->accept(*this);
+    if (inet->type.type == Type::array) {
+      AllocaInst *dst = b_.CreateAllocaBPF(SizedType(Type::integer, inet->type.size), "inet_array_access");
+      b_.CreateProbeRead(dst, inet->type.size, expr_);
+      expr_ = b_.CreateLoad(dst);
+      b_.CreateLifetimeEnd(dst);
+    }
     b_.CreateStore(expr_, inet_offset);
+
     expr_ = buf;
   }
   else if (call.func == "reg")
