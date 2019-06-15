@@ -4,7 +4,8 @@ set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-DOCKER_FLAGS="--rm -it  -u $(id -u):$(id -g) -e REPOSITORY=$DIR"
+DOCKER_FLAGS="--rm -u $(id -u):$(id -g) -e REPOSITORY=$DIR"
+# DOCKER_FLAGS="--rm -it  -u $(id -u):$(id -g) -e REPOSITORY=$DIR"
 DOCKER_VOLUMES="-v $DIR:$DIR"
 
 DOCKER_BASE="${DOCKER_BASE:-alpine}"
