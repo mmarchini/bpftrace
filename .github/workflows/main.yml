@@ -1,0 +1,15 @@
+name: "IRC Pull Request Notification"
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: rectalogic/notify-irc@v1
+      with:
+        channel: "#bpftrace"
+        server: "irc.oftc.net"
+        nickname: "github-bot"
+        message: |
+          ${{ github.actor }} opened PR ${{ github.event.html_url }}
